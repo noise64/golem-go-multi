@@ -117,20 +117,9 @@ func GolemCliStubCompose(componentName, componentWasm, targetWasm string) error 
 	dependencies := components[componentName]
 
 	stubWasms := make([]string, len(dependencies))
-	missingStubs := false
 	for i, componentName := range dependencies {
 		stubTargetDir := filepath.Join(targetDir, "stub", componentName)
 		stubWasms[i] = filepath.Join(stubTargetDir, "stub.wasm")
-		if _, err := os.Stat(stubWasms[i]); os.IsNotExist(err) {
-			missingStubs = true
-		}
-	}
-
-	if missingStubs {
-		err := UpdateRpcStubs()
-		if err != nil {
-			return err
-		}
 	}
 
 	return opRun(op{
