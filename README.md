@@ -1,4 +1,4 @@
-# Golem Go Example with multiple components and Worker to Worker RPC Communication
+# Golem Go Example with Multiple Components and Worker to Worker RPC Communication
 
 ## Building
 The project uses [magefile](https://magefile.org/) for building. Either install the tool binary `mage`,
