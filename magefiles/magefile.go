@@ -32,7 +32,7 @@ func Build() error {
 // BuildAllComponents builds all components
 func BuildAllComponents() error {
 	for _, componentName := range componentNames() {
-		err := BuildComponent(componentName, components[componentName])
+		err := BuildComponent(componentName)
 		if err != nil {
 			return err
 		}
@@ -112,13 +112,25 @@ func GolemCliAddStubDependency(componentName, dependencyComponentName string) er
 }
 
 // GolemCliStubCompose composes dependencies
-func GolemCliStubCompose(componentName, componentWasm, targetWasm string, rpcDependencies []string) error {
+func GolemCliStubCompose(componentName, componentWasm, targetWasm string) error {
 	buildTargetDir := filepath.Dir(componentWasm)
+	dependencies := components[componentName]
 
-	stubWasms := make([]string, len(rpcDependencies))
-	for i, componentName := range rpcDependencies {
+	stubWasms := make([]string, len(dependencies))
+	missingStubs := false
+	for i, componentName := range dependencies {
 		stubTargetDir := filepath.Join(targetDir, "stub", componentName)
 		stubWasms[i] = filepath.Join(stubTargetDir, "stub.wasm")
+		if _, err := os.Stat(stubWasms[i]); os.IsNotExist(err) {
+			missingStubs = true
+		}
+	}
+
+	if missingStubs {
+		err := UpdateRpcStubs()
+		if err != nil {
+			return err
+		}
 	}
 
 	return opRun(op{
@@ -135,7 +147,7 @@ func GolemCliStubCompose(componentName, componentWasm, targetWasm string, rpcDep
 				for i, stubWasm := range stubWasms {
 					composeWasm = filepath.Join(
 						buildTargetDir,
-						fmt.Sprintf("compose-%d-%s.wasm", i+1, filepath.Base(rpcDependencies[i])),
+						fmt.Sprintf("compose-%d-%s.wasm", i+1, filepath.Base(dependencies[i])),
 					)
 					err := sh.RunV(
 						"golem-cli", "stubgen", "compose",
@@ -156,7 +168,7 @@ func GolemCliStubCompose(componentName, componentWasm, targetWasm string, rpcDep
 }
 
 // BuildComponent builds component by name
-func BuildComponent(componentName string, rpcDependencies []string) error {
+func BuildComponent(componentName string) error {
 	componentDir := filepath.Join(componentsDir, componentName)
 	witDir := filepath.Join(componentDir, "wit")
 	bindingDir := filepath.Join(componentDir, "binding")
@@ -175,7 +187,7 @@ func BuildComponent(componentName string, rpcDependencies []string) error {
 		func() error { return WASMToolsComponentEmbed(witDir, moduleWasm, embedWasm) },
 		func() error { return WASMToolsComponentNew(embedWasm, componentWasm) },
 		func() error {
-			return GolemCliStubCompose(componentName, componentWasm, composedComponentWasm, rpcDependencies)
+			return GolemCliStubCompose(componentName, componentWasm, composedComponentWasm)
 		},
 	)
 }
