@@ -28,7 +28,7 @@ For building the project for the first time (or after `clean`) use the following
 
 ```shell
 go run mage.go updateRpcStubs
-go run mage.go build`
+go run mage.go build
 ```
 
 After this, using the `build` command is enough, unless there are changes in the RPC dependencies,
