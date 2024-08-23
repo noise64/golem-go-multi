@@ -44,7 +44,7 @@ func BuildAllComponents() error {
 // UpdateRpcStubs builds rpc stub components and adds them as dependency
 func UpdateRpcStubs() error {
 	for _, componentName := range stubComponentNames() {
-		err := GolemCliBuildStubComponent(componentName)
+		err := BuildStubComponent(componentName)
 		if err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func UpdateRpcStubs() error {
 
 	for _, componentName := range componentNames() {
 		for _, dependency := range componentDeps[componentName] {
-			err := GolemCliAddStubDependency(componentName, dependency)
+			err := AddStubDependency(componentName, dependency)
 			if err != nil {
 				return err
 			}
@@ -62,8 +62,8 @@ func UpdateRpcStubs() error {
 	return nil
 }
 
-// GolemCliBuildStubComponent builds RPC stub for component
-func GolemCliBuildStubComponent(componentName string) error {
+// BuildStubComponent builds RPC stub for component
+func BuildStubComponent(componentName string) error {
 	componentDir := filepath.Join(componentsDir, componentName)
 	srcWitDir := filepath.Join(componentDir, "wit")
 	stubTargetDir := filepath.Join(targetDir, "stub", componentName)
@@ -86,8 +86,8 @@ func GolemCliBuildStubComponent(componentName string) error {
 	})
 }
 
-// GolemCliAddStubDependency adds generated and built stub dependency to componentGolemCliAddStubDependency
-func GolemCliAddStubDependency(componentName, dependencyComponentName string) error {
+// AddStubDependency adds generated and built stub dependency to componentGolemCliAddStubDependency
+func AddStubDependency(componentName, dependencyComponentName string) error {
 	stubTargetDir := filepath.Join(targetDir, "stub", dependencyComponentName)
 	srcWitDir := filepath.Join(stubTargetDir, "wit")
 	dstComponentDir := filepath.Join(componentsDir, componentName)
@@ -111,8 +111,8 @@ func GolemCliAddStubDependency(componentName, dependencyComponentName string) er
 	})
 }
 
-// GolemCliStubCompose composes dependencies
-func GolemCliStubCompose(componentName, componentWasm, targetWasm string) error {
+// StubCompose composes dependencies
+func StubCompose(componentName, componentWasm, targetWasm string) error {
 	buildTargetDir := filepath.Dir(componentWasm)
 	dependencies := componentDeps[componentName]
 
@@ -191,7 +191,7 @@ func BuildComponent(componentName string) error {
 		func() error { return WASMToolsComponentEmbed(witDir, moduleWasm, embedWasm) },
 		func() error { return WASMToolsComponentNew(embedWasm, componentWasm) },
 		func() error {
-			return GolemCliStubCompose(componentName, componentWasm, composedComponentWasm)
+			return StubCompose(componentName, componentWasm, composedComponentWasm)
 		},
 	)
 }

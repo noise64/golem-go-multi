@@ -9,15 +9,15 @@ To see the available commands use:
 ```shell
 go run mage.go
 Targets:
+  addStubDependency             adds generated and built stub dependency to componentGolemCliAddStubDependency
   build                         alias for BuildAllComponents
   buildAllComponents            builds all components
   buildComponent                builds component by name
+  buildStubComponent            builds RPC stub for component
   clean                         cleans the projects
   generateBinding               generates go binding from WIT
   generateNewComponent          generates a new component based on the component-template
-  golemCliAddStubDependency     adds generated and built stub dependency to componentGolemCliAddStubDependency
-  golemCliBuildStubComponent    builds RPC stub for component
-  golemCliStubCompose           composes dependencies
+  stubCompose                   composes dependencies
   tinyGoBuildComponentBinary    build wasm component binary with tiny go
   updateRpcStubs                builds rpc stub components and adds them as dependency
   wasmToolsComponentEmbed       embeds type info into wasm component with wasm-tools
