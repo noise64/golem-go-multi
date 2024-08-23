@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -12,11 +13,10 @@ import (
 	"github.com/magefile/mage/target"
 )
 
-// components and RPC dependencies
-var components = map[string][]string{
-	"component1": {"component2", "component3"},
-	"component2": {"component3"},
-	"component3": nil,
+// componentDeps defines the Worker to Worker RPC dependencies
+var componentDeps = map[string][]string{
+	"component-one": {"component-two", "component-three"},
+	"component-two": {"component-three"},
 }
 
 var packageOrg = "golem"
@@ -43,7 +43,7 @@ func BuildAllComponents() error {
 
 // UpdateRpcStubs builds rpc stub components and adds them as dependency
 func UpdateRpcStubs() error {
-	for _, componentName := range rpcComponentNames() {
+	for _, componentName := range stubComponentNames() {
 		err := GolemCliBuildStubComponent(componentName)
 		if err != nil {
 			return err
@@ -51,7 +51,7 @@ func UpdateRpcStubs() error {
 	}
 
 	for _, componentName := range componentNames() {
-		for _, dependency := range components[componentName] {
+		for _, dependency := range componentDeps[componentName] {
 			err := GolemCliAddStubDependency(componentName, dependency)
 			if err != nil {
 				return err
@@ -114,7 +114,7 @@ func GolemCliAddStubDependency(componentName, dependencyComponentName string) er
 // GolemCliStubCompose composes dependencies
 func GolemCliStubCompose(componentName, componentWasm, targetWasm string) error {
 	buildTargetDir := filepath.Dir(componentWasm)
-	dependencies := components[componentName]
+	dependencies := componentDeps[componentName]
 
 	stubWasms := make([]string, len(dependencies))
 	for i, componentName := range dependencies {
@@ -128,23 +128,38 @@ func GolemCliStubCompose(componentName, componentWasm, targetWasm string) error 
 		Targets:     []string{targetWasm},
 		SourcePaths: append(stubWasms, componentWasm),
 		Run: func() error {
-			var composeWasm string
-			if len(stubWasms) == 0 {
-				composeWasm = componentWasm
-			} else {
+			composeWasm := componentWasm
+			if len(stubWasms) > 0 {
 				srcWasm := componentWasm
 				for i, stubWasm := range stubWasms {
+					prevComposeWasm := composeWasm
 					composeWasm = filepath.Join(
 						buildTargetDir,
 						fmt.Sprintf("compose-%d-%s.wasm", i+1, filepath.Base(dependencies[i])),
 					)
-					err := sh.RunV(
+
+					outBuf := &bytes.Buffer{}
+					errBuff := &bytes.Buffer{}
+
+					_, err := sh.Exec(
+						nil, outBuf, errBuff,
 						"golem-cli", "stubgen", "compose",
 						"--source-wasm", srcWasm,
 						"--stub-wasm", stubWasm,
 						"--dest-wasm", composeWasm,
 					)
 					if err != nil {
+						errString := errBuff.String()
+						if strings.Contains(errString, "Error: no dependencies of component") &&
+							strings.Contains(errString, "were found") {
+							fmt.Printf("Skipping composing %s, not used\n", stubWasm)
+							composeWasm = prevComposeWasm
+							continue
+						}
+
+						fmt.Print(outBuf)
+						fmt.Print(errBuff)
+
 						return err
 					}
 					srcWasm = composeWasm
@@ -228,7 +243,7 @@ func WASMToolsComponentEmbed(witDir, moduleWasm, embedWasm string) error {
 	})
 }
 
-// WASMToolsComponentNew create golem component with wasm-tools and compose dependencies
+// WASMToolsComponentNew create golem component with wasm-tools
 func WASMToolsComponentNew(embedWasm, componentWasm string) error {
 	return opRun(op{
 		RunMessage:  fmt.Sprintf("Creating new component: %s", embedWasm),
@@ -244,6 +259,16 @@ func WASMToolsComponentNew(embedWasm, componentWasm string) error {
 			)
 		},
 	})
+}
+
+// GenerateNewComponent generates a new component based on the component-template
+func GenerateNewComponent(componentName string) error {
+	err := sh.RunV("go", "run", "component-generator/main.go", packageOrg, componentName)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 // Clean cleans the projects
@@ -268,16 +293,19 @@ func Clean() error {
 
 func componentNames() []string {
 	var componentNames []string
-	for component := range components {
-		componentNames = append(componentNames, component)
+	dirs, err := os.ReadDir(componentsDir)
+	if err != nil {
+		return nil
 	}
-	sort.Strings(componentNames)
+	for _, dir := range dirs {
+		componentNames = append(componentNames, dir.Name())
+	}
 	return componentNames
 }
 
-func rpcComponentNames() []string {
+func stubComponentNames() []string {
 	componentNamesSet := make(map[string]struct{})
-	for _, deps := range components {
+	for _, deps := range componentDeps {
 		for _, dep := range deps {
 			componentNamesSet[dep] = struct{}{}
 		}
