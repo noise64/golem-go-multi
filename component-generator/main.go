@@ -39,7 +39,7 @@ func main() {
 			srcFilePath := filepath.Join(componentTemplateRoot, path)
 			fileInfo, err := os.Stat(srcFilePath)
 			if err != nil {
-				return err
+				return fmt.Errorf("stat failed for template %s, %w", srcFilePath, err)
 			}
 
 			if fileInfo.IsDir() {
@@ -55,7 +55,7 @@ func main() {
 				err = copyFile(srcFilePath, filepath.Join(componentDir, path))
 			}
 			if err != nil {
-				return err
+				return fmt.Errorf("template generation failed for %s, %w", srcFilePath, err)
 			}
 
 			return nil
@@ -73,7 +73,7 @@ func generateFile(packageOrg, componentName, srcFileName, dstFileName string) er
 
 	contentsBs, err := os.ReadFile(srcFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("generateFile: read file failed for %s, %w", srcFileName, err)
 	}
 
 	contents := string(contentsBs)
@@ -83,14 +83,15 @@ func generateFile(packageOrg, componentName, srcFileName, dstFileName string) er
 	contents = strings.ReplaceAll(contents, "ComponentName", pascalComponentName)
 	contents = strings.ReplaceAll(contents, "PackageOrg", pascalPackageOrg)
 
-	err = os.MkdirAll(filepath.Dir(dstFileName), 0755)
+	dstDir := filepath.Dir(dstFileName)
+	err = os.MkdirAll(dstDir, 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("generateFile: mkdir failed for %s, %w", dstDir, err)
 	}
 
 	err = os.WriteFile(dstFileName, []byte(contents), 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("generateFile: write file failed for %s, %w", dstFileName, err)
 	}
 
 	return nil
@@ -111,24 +112,25 @@ func copyFile(srcFileName, dstFileName string) error {
 
 	src, err := os.Open(srcFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: open failed for %s, %w", srcFileName, err)
 	}
 	defer func() { _ = src.Close() }()
 
-	err = os.MkdirAll(filepath.Dir(dstFileName), 0755)
+	dstDir := filepath.Dir(dstFileName)
+	err = os.MkdirAll(dstDir, 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: mkdir failed for %s, %w", dstDir, err)
 	}
 
 	dst, err := os.Create(dstFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: create file failed for %s, %w", dstFileName, err)
 	}
 	defer func() { _ = dst.Close() }()
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: copy failed from %s to %s, %w", srcFileName, dstFileName, err)
 	}
 
 	return nil

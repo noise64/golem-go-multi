@@ -35,7 +35,7 @@ func BuildAllComponents() error {
 	for _, componentName := range componentNames() {
 		err := BuildComponent(componentName)
 		if err != nil {
-			return err
+			return fmt.Errorf("build all components: build component failed for %s, %w", componentName, err)
 		}
 	}
 
@@ -47,7 +47,7 @@ func UpdateRpcStubs() error {
 	for _, componentName := range stubComponentNames() {
 		err := BuildStubComponent(componentName)
 		if err != nil {
-			return err
+			return fmt.Errorf("update RPC stubs: build stub component failed for %s, %w", componentName, err)
 		}
 	}
 
@@ -55,7 +55,7 @@ func UpdateRpcStubs() error {
 		for _, dependency := range componentDeps[componentName] {
 			err := AddStubDependency(componentName, dependency)
 			if err != nil {
-				return err
+				return fmt.Errorf("update RPC stubs: add stub dependecy failed for %s to %s, %w", dependency, componentName, err)
 			}
 		}
 	}
@@ -161,7 +161,7 @@ func StubCompose(componentName, componentWasm, targetWasm string) error {
 						fmt.Print(outBuf)
 						fmt.Print(errBuff)
 
-						return err
+						return fmt.Errorf("StubCompose failed: %w", err)
 					}
 					srcWasm = composeWasm
 				}
@@ -266,10 +266,10 @@ func WASMToolsComponentNew(embedWasm, componentWasm string) error {
 func GenerateNewComponent(componentName string) error {
 	err := sh.RunV("go", "run", "component-generator/main.go", packageOrg, componentName)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate new component failed for %s, %w", componentName, err)
 	}
 
-	return err
+	return nil
 }
 
 // Clean cleans the projects
@@ -285,7 +285,7 @@ func Clean() error {
 		fmt.Printf("Deleting %s\n", path)
 		err := os.RemoveAll(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("clean: remove all failed for %s, %w", path, err)
 		}
 	}
 
@@ -304,7 +304,7 @@ func Deploy() error {
 			wasm,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("deploy: failed for %s, %w", componentName, err)
 		}
 	}
 	return nil
@@ -341,29 +341,29 @@ func stubComponentNames() []string {
 func copyFile(srcFileName, dstFileName string) error {
 	src, err := os.Open(srcFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: open failed for %s, %w", srcFileName, err)
 	}
 	defer func() { _ = src.Close() }()
 
 	dst, err := os.Create(dstFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: create failed for %s, %w", srcFileName, err)
 	}
 	defer func() { _ = dst.Close() }()
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
-		return err
+		return fmt.Errorf("copyFile: copy failed from %s to %s, %w", srcFileName, dstFileName, err)
 	}
 
 	return nil
 }
 
 func serialRun(fs ...func() error) error {
-	for _, f := range fs {
+	for i, f := range fs {
 		err := f()
 		if err != nil {
-			return err
+			return fmt.Errorf("serialRun: step %d failed: %w", i+1, err)
 		}
 	}
 	return nil
