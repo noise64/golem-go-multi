@@ -291,6 +291,24 @@ func Clean() error {
 	return nil
 }
 
+// Deploy adds or updates all the components with golem-cli's default profile
+func Deploy() error {
+	componentsTargetDir := filepath.Join(targetDir, "components")
+	for _, componentName := range componentNames() {
+		wasm := filepath.Join(componentsTargetDir, fmt.Sprintf("%s.wasm", componentName))
+		err := sh.RunV(
+			"golem-cli", "component", "add",
+			"--non-interactive",
+			"--component-name", componentName,
+			wasm,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func componentNames() []string {
 	var componentNames []string
 	dirs, err := os.ReadDir(componentsDir)
