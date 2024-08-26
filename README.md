@@ -15,9 +15,11 @@ Targets:
   buildComponent                builds component by name
   buildStubComponent            builds RPC stub for component
   clean                         cleans the projects
+  deploy                        adds or updates all the components with golem-cli\'s default profile
   generateBinding               generates go binding from WIT
   generateNewComponent          generates a new component based on the component-template
   stubCompose                   composes dependencies
+  testIntegration               tests the deployed components
   tinyGoBuildComponentBinary    build wasm component binary with tiny go
   updateRpcStubs                builds rpc stub components and adds them as dependency
   wasmToolsComponentEmbed       embeds type info into wasm component with wasm-tools

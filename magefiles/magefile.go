@@ -310,6 +310,16 @@ func Deploy() error {
 	return nil
 }
 
+// TestIntegration tests the deployed components
+func TestIntegration() error {
+	err := sh.RunV("go", "test", "./integration", "-v")
+	if err != nil {
+		return fmt.Errorf("test integration failed: %w", err)
+	}
+
+	return nil
+}
+
 func componentNames() []string {
 	var componentNames []string
 	dirs, err := os.ReadDir(componentsDir)
