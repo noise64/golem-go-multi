@@ -22,6 +22,7 @@ var componentDeps = map[string][]string{
 var packageOrg = "golem"
 var targetDir = "target"
 var componentsDir = "components"
+var libDir = "lib"
 var wasiSnapshotPreview1Adapter = "adapters/tier1/wasi_snapshot_preview1.wasm"
 
 // Build alias for BuildAllComponents
@@ -215,7 +216,7 @@ func TinyGoBuildComponentBinary(componentDir, moduleWasm string) error {
 		RunMessage:  fmt.Sprintf("Building component binary with tiny go: %s", moduleWasm),
 		SkipMessage: "tinygo component binary build",
 		Targets:     []string{moduleWasm},
-		SourcePaths: []string{componentsDir},
+		SourcePaths: []string{componentsDir, libDir},
 		Run: func() error {
 			return sh.RunV(
 				"tinygo", "build", "-target=wasi", "-tags=purego",

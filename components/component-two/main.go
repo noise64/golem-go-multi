@@ -1,8 +1,14 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/golemcloud/golem-go/golemhost"
 	"github.com/golemcloud/golem-go/std"
+
 	"golem-go-project/components/component-two/binding"
+	// NOTE: use the lib folder to create common packages used by multiple components
+	"golem-go-project/lib/cfg"
 )
 
 func init() {
@@ -16,10 +22,20 @@ type Impl struct {
 func (i *Impl) Add(value uint64) {
 	std.Init(std.Packages{Os: true, NetHttp: true})
 
-	componentThree := binding.NewComponentThreeApi(binding.GolemRpc0_1_0_TypesUri{Value: "uri"})
-	defer componentThree.Drop()
+	selfWorkerName := golemhost.GetSelfMetadata().WorkerId.WorkerName
 
-	componentThree.BlockingAdd(value)
+	{
+		componentThreeWorkerURI, err := cfg.ComponentThreeWorkerURI(selfWorkerName)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			return
+		}
+
+		fmt.Printf("Calling %s...\n", componentThreeWorkerURI.Value)
+		componentThree := binding.NewComponentThreeApi(binding.GolemRpc0_1_0_TypesUri(componentThreeWorkerURI))
+		defer componentThree.Drop()
+		componentThree.BlockingAdd(value)
+	}
 
 	i.counter += value
 }

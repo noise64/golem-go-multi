@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/golemcloud/golem-go/std"
+
 	"golem-go-project/components/component-three/binding"
 )
 
