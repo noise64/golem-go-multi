@@ -38,6 +38,46 @@ in that case `updateRpcStubs` is needed again.
 
 The final components that are usable by golem are placed in the `target/components` folder.
 
+## Deploying and testing the example
+
+In the example 3 simple counter components are defined, which can be familiar from the smaller examples. To showcase the remote calls, the counters `add` functions are connected, apart from increasing their own counter:
+ - **component one** delegates the add call to **component two** and **three** too,
+ - and **component two** delegates to **component three**.
+
+In both cases the _current worker name_ will be used as _target worker name_ too. 
+
+Apart from _worker name_, remote calls also require the **target components' deployed ID**. For this the example uses environment variables, and uses the `lib/cfg` subpackage (which is shared between the components) to extract it.
+
+The examples assume a configured default `golem-cli` profile, and will use that.
+
+To test, first we have to build the project as seen in the above:
+
+```shell
+go run mage.go updateRpcStubs
+go run mage.go build
+```
+
+Then we can deploy our components with `golem-cli`, for which a wrapper magefile command is provided:
+
+```shell
+go run mage.go deploy
+```
+
+Once the components are deployed, a simple example integration test suite can be used to test the components.
+The tests are in the [/integration/integration_test.go](/integration/integration_test.go) test file, and can be run with:
+
+```shell
+go run mage.go testIntegration
+```
+
+The `TestDeployed` simply tests if our components metadata is available through `golem-cli component get`.
+
+The `TestCallingAddOnComponentOneCallsToOtherComponents` will:
+ - get the _component URNs_ with `golem-cli component get`
+ - generates a _random worker name_, so our tests are starting from a clean state
+ - adds 1 - 1 worker for component one and component two with the required _environment variables_ containing the other workers' _component ids_
+ - then makes various component invocations with `golem-cli worker invoke-and-await` and tests if the counters - after increments -  are holding the right value according to the delegated `add` function calls.
+
 ## Adding Components
 
 Use the `generateNewComponent` command to add new components to the project:
@@ -51,6 +91,15 @@ The above will create a new component in the `components/component-four` directo
 After adding a new component the `build` command will also include it.
 
 ## Using Worker to Worker RPC calls
+
+### Under the hood 
+
+Under the hood the _magefile_ commands below (and for build) use generic `golem-cli stubgen` subcommands:
+ - `golem-cli stubgen build` for creating remote call _stub WIT_ definitions and _WASM components_ for the stubs
+ - `golem-cli stubgen add-stub-dependency` for adding the _stub WIT_ definitions to a _component's WIT_ dependencies
+ - `golem-cli stubgen compose` for _composing_ components with the stub components
+
+### Magefile commands and required manual steps
 
 The dependencies between components are defined in  the [/magefiles/magefile.go](/magefiles/magefile.go) build script:
 
@@ -134,7 +183,6 @@ func (i *Impl) Add(value uint64) {
 
     i.counter += value
 }
-
 ```
 
-
+Once a remote call is in place, the `build` command will also compose the stub components into the caller component.
