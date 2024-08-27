@@ -19,7 +19,7 @@ var componentDeps = map[string][]string{
 	"component-two": {"component-three"},
 }
 
-var packageOrg = "golem"
+var pkgOrg = "package-org"
 var targetDir = "target"
 var componentsDir = "components"
 var libDir = "lib"
@@ -32,10 +32,10 @@ func Build() error {
 
 // BuildAllComponents builds all components
 func BuildAllComponents() error {
-	for _, componentName := range componentNames() {
-		err := BuildComponent(componentName)
+	for _, compName := range compNames() {
+		err := BuildComponent(compName)
 		if err != nil {
-			return fmt.Errorf("build all components: build component failed for %s, %w", componentName, err)
+			return fmt.Errorf("build all components: build component failed for %s, %w", compName, err)
 		}
 	}
 
@@ -44,18 +44,18 @@ func BuildAllComponents() error {
 
 // UpdateRpcStubs builds rpc stub components and adds them as dependency
 func UpdateRpcStubs() error {
-	for _, componentName := range stubComponentNames() {
-		err := BuildStubComponent(componentName)
+	for _, compName := range stubCompNames() {
+		err := BuildStubComponent(compName)
 		if err != nil {
-			return fmt.Errorf("update RPC stubs: build stub component failed for %s, %w", componentName, err)
+			return fmt.Errorf("update RPC stubs: build stub component failed for %s, %w", compName, err)
 		}
 	}
 
-	for _, componentName := range componentNames() {
-		for _, dependency := range componentDeps[componentName] {
-			err := AddStubDependency(componentName, dependency)
+	for _, compName := range compNames() {
+		for _, dependency := range componentDeps[compName] {
+			err := AddStubDependency(compName, dependency)
 			if err != nil {
-				return fmt.Errorf("update RPC stubs: add stub dependecy failed for %s to %s, %w", dependency, componentName, err)
+				return fmt.Errorf("update RPC stubs: add stub dependecy failed for %s to %s, %w", dependency, compName, err)
 			}
 		}
 	}
@@ -64,15 +64,15 @@ func UpdateRpcStubs() error {
 }
 
 // BuildStubComponent builds RPC stub for component
-func BuildStubComponent(componentName string) error {
-	componentDir := filepath.Join(componentsDir, componentName)
+func BuildStubComponent(compName string) error {
+	componentDir := filepath.Join(componentsDir, compName)
 	srcWitDir := filepath.Join(componentDir, "wit")
-	stubTargetDir := filepath.Join(targetDir, "stub", componentName)
+	stubTargetDir := filepath.Join(targetDir, "stub", compName)
 	destWasm := filepath.Join(stubTargetDir, "stub.wasm")
 	destWitDir := filepath.Join(stubTargetDir, "wit")
 
 	return opRun(op{
-		RunMessage:  fmt.Sprintf("Building stub component for %s", componentName),
+		RunMessage:  fmt.Sprintf("Building stub component for %s", compName),
 		SkipMessage: "stub component build",
 		Targets:     []string{destWasm, destWitDir},
 		SourcePaths: []string{srcWitDir},
@@ -88,16 +88,16 @@ func BuildStubComponent(componentName string) error {
 }
 
 // AddStubDependency adds generated and built stub dependency to componentGolemCliAddStubDependency
-func AddStubDependency(componentName, dependencyComponentName string) error {
-	stubTargetDir := filepath.Join(targetDir, "stub", dependencyComponentName)
+func AddStubDependency(compName, depCompName string) error {
+	stubTargetDir := filepath.Join(targetDir, "stub", depCompName)
 	srcWitDir := filepath.Join(stubTargetDir, "wit")
-	dstComponentDir := filepath.Join(componentsDir, componentName)
+	dstComponentDir := filepath.Join(componentsDir, compName)
 	dstWitDir := filepath.Join(dstComponentDir, "wit")
-	dstWitDepDir := filepath.Join(dstComponentDir, dstWitDir, "deps", fmt.Sprintf("%s_%s", packageOrg, componentName))
-	dstWitDepStubDir := filepath.Join(dstComponentDir, dstWitDir, "deps", fmt.Sprintf("%s_%s-stub", packageOrg, componentName))
+	dstWitDepDir := filepath.Join(dstComponentDir, dstWitDir, "deps", fmt.Sprintf("%s_%s", pkgOrg, compName))
+	dstWitDepStubDir := filepath.Join(dstComponentDir, dstWitDir, "deps", fmt.Sprintf("%s_%s-stub", pkgOrg, compName))
 
 	return opRun(op{
-		RunMessage:  fmt.Sprintf("Adding stub dependecy for %s to %s", dependencyComponentName, componentName),
+		RunMessage:  fmt.Sprintf("Adding stub dependecy for %s to %s", depCompName, compName),
 		SkipMessage: "add stub dependency",
 		Targets:     []string{dstWitDepDir, dstWitDepStubDir},
 		SourcePaths: []string{srcWitDir},
@@ -113,18 +113,18 @@ func AddStubDependency(componentName, dependencyComponentName string) error {
 }
 
 // StubCompose composes dependencies
-func StubCompose(componentName, componentWasm, targetWasm string) error {
+func StubCompose(compName, componentWasm, targetWasm string) error {
 	buildTargetDir := filepath.Dir(componentWasm)
-	dependencies := componentDeps[componentName]
+	dependencies := componentDeps[compName]
 
 	stubWasms := make([]string, len(dependencies))
-	for i, componentName := range dependencies {
-		stubTargetDir := filepath.Join(targetDir, "stub", componentName)
+	for i, compName := range dependencies {
+		stubTargetDir := filepath.Join(targetDir, "stub", compName)
 		stubWasms[i] = filepath.Join(stubTargetDir, "stub.wasm")
 	}
 
 	return opRun(op{
-		RunMessage:  fmt.Sprintf("Composing %s into %s", strings.Join(stubWasms, ", "), componentName),
+		RunMessage:  fmt.Sprintf("Composing %s into %s", strings.Join(stubWasms, ", "), compName),
 		SkipMessage: "composing",
 		Targets:     []string{targetWasm},
 		SourcePaths: append(stubWasms, componentWasm),
@@ -173,16 +173,16 @@ func StubCompose(componentName, componentWasm, targetWasm string) error {
 }
 
 // BuildComponent builds component by name
-func BuildComponent(componentName string) error {
-	componentDir := filepath.Join(componentsDir, componentName)
+func BuildComponent(compName string) error {
+	componentDir := filepath.Join(componentsDir, compName)
 	witDir := filepath.Join(componentDir, "wit")
 	bindingDir := filepath.Join(componentDir, "binding")
-	buildTargetDir := filepath.Join(targetDir, "build", componentName)
+	buildTargetDir := filepath.Join(targetDir, "build", compName)
 	componentsTargetDir := filepath.Join(targetDir, "components")
 	moduleWasm := filepath.Join(buildTargetDir, "module.wasm")
 	embedWasm := filepath.Join(buildTargetDir, "embed.wasm")
 	componentWasm := filepath.Join(buildTargetDir, "component.wasm")
-	composedComponentWasm := filepath.Join(componentsTargetDir, fmt.Sprintf("%s.wasm", componentName))
+	composedComponentWasm := filepath.Join(componentsTargetDir, fmt.Sprintf("%s.wasm", compName))
 
 	return serialRun(
 		func() error { return os.MkdirAll(buildTargetDir, 0755) },
@@ -192,7 +192,7 @@ func BuildComponent(componentName string) error {
 		func() error { return WASMToolsComponentEmbed(witDir, moduleWasm, embedWasm) },
 		func() error { return WASMToolsComponentNew(embedWasm, componentWasm) },
 		func() error {
-			return StubCompose(componentName, componentWasm, composedComponentWasm)
+			return StubCompose(compName, componentWasm, composedComponentWasm)
 		},
 	)
 }
@@ -263,10 +263,10 @@ func WASMToolsComponentNew(embedWasm, componentWasm string) error {
 }
 
 // GenerateNewComponent generates a new component based on the component-template
-func GenerateNewComponent(componentName string) error {
-	err := sh.RunV("go", "run", "component-generator/main.go", packageOrg, componentName)
+func GenerateNewComponent(compName string) error {
+	err := sh.RunV("go", "run", "component-generator/main.go", pkgOrg, compName)
 	if err != nil {
-		return fmt.Errorf("generate new component failed for %s, %w", componentName, err)
+		return fmt.Errorf("generate new component failed for %s, %w", compName, err)
 	}
 
 	return nil
@@ -277,8 +277,8 @@ func Clean() error {
 	fmt.Println("Cleaning...")
 
 	paths := []string{targetDir}
-	for _, componentName := range componentNames() {
-		paths = append(paths, filepath.Join(componentsDir, componentName, "binding"))
+	for _, compName := range compNames() {
+		paths = append(paths, filepath.Join(componentsDir, compName, "binding"))
 	}
 
 	for _, path := range paths {
@@ -295,16 +295,16 @@ func Clean() error {
 // Deploy adds or updates all the components with golem-cli's default profile
 func Deploy() error {
 	componentsTargetDir := filepath.Join(targetDir, "components")
-	for _, componentName := range componentNames() {
-		wasm := filepath.Join(componentsTargetDir, fmt.Sprintf("%s.wasm", componentName))
+	for _, compName := range compNames() {
+		wasm := filepath.Join(componentsTargetDir, fmt.Sprintf("%s.wasm", compName))
 		err := sh.RunV(
 			"golem-cli", "component", "add",
 			"--non-interactive",
-			"--component-name", componentName,
+			"--component"+"-name", compName,
 			wasm,
 		)
 		if err != nil {
-			return fmt.Errorf("deploy: failed for %s, %w", componentName, err)
+			return fmt.Errorf("deploy: failed for %s, %w", compName, err)
 		}
 	}
 	return nil
@@ -320,32 +320,34 @@ func TestIntegration() error {
 	return nil
 }
 
-func componentNames() []string {
-	var componentNames []string
+// compNames returns component names based on directories found in the components directory
+func compNames() []string {
+	var compNames []string
 	dirs, err := os.ReadDir(componentsDir)
 	if err != nil {
 		return nil
 	}
 	for _, dir := range dirs {
-		componentNames = append(componentNames, dir.Name())
+		compNames = append(compNames, dir.Name())
 	}
-	return componentNames
+	return compNames
 }
 
-func stubComponentNames() []string {
-	componentNamesSet := make(map[string]struct{})
+// stubCompNames returns component names that need stubs based on the dependencies defined in componentDeps
+func stubCompNames() []string {
+	compNamesSet := make(map[string]struct{})
 	for _, deps := range componentDeps {
 		for _, dep := range deps {
-			componentNamesSet[dep] = struct{}{}
+			compNamesSet[dep] = struct{}{}
 		}
 	}
 
-	var componentNames []string
-	for component := range componentNamesSet {
-		componentNames = append(componentNames, component)
+	var compNames []string
+	for comp := range compNamesSet {
+		compNames = append(compNames, comp)
 	}
-	sort.Strings(componentNames)
-	return componentNames
+	sort.Strings(compNames)
+	return compNames
 }
 
 func copyFile(srcFileName, dstFileName string) error {

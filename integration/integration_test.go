@@ -11,13 +11,13 @@ import (
 )
 
 func TestDeployed(t *testing.T) {
-	componentOneURN := mustGetComponentURNByComponentName(t, "component-one")
+	componentOneURN := mustGetCompURNByCompName(t, "component-one")
 	fmt.Printf("component-one: %s\n", componentOneURN)
 
-	componentTwoURN := mustGetComponentURNByComponentName(t, "component-two")
+	componentTwoURN := mustGetCompURNByCompName(t, "component-two")
 	fmt.Printf("component-two: %s\n", componentTwoURN)
 
-	componentThreeURN := mustGetComponentURNByComponentName(t, "component-three")
+	componentThreeURN := mustGetCompURNByCompName(t, "component-three")
 	fmt.Printf("component-three: %s\n", componentThreeURN)
 }
 
@@ -80,12 +80,12 @@ func TestCallingAddOnComponentOneCallsToOtherComponents(t *testing.T) {
 	}
 }
 
-func getComponentURNByComponentName(componentName string) (string, error) {
+func getCompURNByCompName(compName string) (string, error) {
 	output, err := sh.Output(
-		"golem-cli", "--format", "json", "component", "get", "--component-name", componentName,
+		"golem-cli", "--format", "json", "component", "get", "--component"+"-name", compName,
 	)
 	if err != nil {
-		return "", fmt.Errorf("getComponentURNByComponentName for %s: golem-cli failed: %w\n", componentName, err)
+		return "", fmt.Errorf("getCompURNByCompName for %s: golem-cli failed: %w\n", compName, err)
 	}
 
 	componentURN := gjson.Get(output, "componentUrn").String()
@@ -96,8 +96,8 @@ func getComponentURNByComponentName(componentName string) (string, error) {
 	return componentURN, nil
 }
 
-func mustGetComponentURNByComponentName(t *testing.T, componentName string) string {
-	name, err := getComponentURNByComponentName(componentName)
+func mustGetCompURNByCompName(t *testing.T, compName string) string {
+	name, err := getCompURNByCompName(compName)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -112,45 +112,45 @@ type ComponentURNs struct {
 
 func mustGetComponentURNs(t *testing.T) ComponentURNs {
 	return ComponentURNs{
-		ComponentOne:   mustGetComponentURNByComponentName(t, "component-one"),
-		ComponentTwo:   mustGetComponentURNByComponentName(t, "component-two"),
-		ComponentThree: mustGetComponentURNByComponentName(t, "component-three"),
+		ComponentOne:   mustGetCompURNByCompName(t, "component-one"),
+		ComponentTwo:   mustGetCompURNByCompName(t, "component-two"),
+		ComponentThree: mustGetCompURNByCompName(t, "component-three"),
 	}
 }
 
-func addComponent(componentName, workerName string, componentURNs ComponentURNs) error {
-	fmt.Printf("adding component: %s, %s\n", componentName, workerName)
+func addComponent(compName, workerName string, componentURNs ComponentURNs) error {
+	fmt.Printf("adding component: %s, %s\n", compName, workerName)
 	output, err := sh.Output(
 		"golem-cli", "worker",
 		"--format", "json",
 		"add",
-		"--component-name", componentName,
+		"--component"+"-name", compName,
 		"--worker-name", workerName,
 		"--env", fmt.Sprintf("COMPONENT_ONE_ID=%s", componentIDFromURN(componentURNs.ComponentOne)),
 		"--env", fmt.Sprintf("COMPONENT_TWO_ID=%s", componentIDFromURN(componentURNs.ComponentTwo)),
 		"--env", fmt.Sprintf("COMPONENT_THREE_ID=%s", componentIDFromURN(componentURNs.ComponentThree)),
 	)
 	if err != nil {
-		return fmt.Errorf("addComponent for %s, %s: golem-cli failed: %w\n%s", componentName, workerName, err, output)
+		return fmt.Errorf("addComponent for %s, %s: golem-cli failed: %w\n%s", compName, workerName, err, output)
 	}
 	return nil
 }
 
-func mustAddComponent(t *testing.T, componentName, workerName string, componentURNs ComponentURNs) {
-	err := addComponent(componentName, workerName, componentURNs)
+func mustAddComponent(t *testing.T, compName, workerName string, componentURNs ComponentURNs) {
+	err := addComponent(compName, workerName, componentURNs)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func invokeAndAwaitComponent(componentName, workerName, function string, functionArgs []string) (string, error) {
-	fmt.Printf("invoking component: %s, %s, %s, %+v\n", componentName, workerName, function, functionArgs)
+func invokeAndAwaitComponent(compName, workerName, function string, functionArgs []string) (string, error) {
+	fmt.Printf("invoking component: %s, %s, %s, %+v\n", compName, workerName, function, functionArgs)
 
 	cliArgs := []string{
 		"--format", "json",
 		"worker",
 		"invoke-and-await",
-		"--component-name", componentName,
+		"--component" + "-name", compName,
 		"--worker-name", workerName,
 		"--function", function,
 	}
@@ -181,21 +181,21 @@ func componentIDFromURN(urn string) string {
 	return strings.Split(urn, ":")[2]
 }
 
-func expectCounter(t *testing.T, componentName, workerName string, expected int64) {
-	output := mustInvokeAndAwaitComponent(t, componentName, workerName, fmt.Sprintf("golem:%s/%s-api.{get}", componentName, componentName), nil)
+func expectCounter(t *testing.T, compName, workerName string, expected int64) {
+	output := mustInvokeAndAwaitComponent(t, compName, workerName, fmt.Sprintf("golem:%s/%s-api.{get}", compName, compName), nil)
 
 	actualValue := gjson.Get(output, "value")
 	if !actualValue.Exists() {
-		t.Fatalf("Expected counter for %s, %s: %d, actual value is missing", componentName, workerName, expected)
+		t.Fatalf("Expected counter for %s, %s: %d, actual value is missing", compName, workerName, expected)
 	}
 
 	actualArray := actualValue.Array()
 	if len(actualArray) != 1 {
-		t.Fatalf("Expected counter for %s, %s: %d, actual value tuple has bad number of elements: %s", componentName, workerName, expected, actualValue)
+		t.Fatalf("Expected counter for %s, %s: %d, actual value tuple has bad number of elements: %s", compName, workerName, expected, actualValue)
 	}
 
 	actual := actualArray[0].Int()
 	if expected != actual {
-		t.Fatalf("Expected counter for %s, %s: %d, actual: %d", componentName, workerName, expected, actual)
+		t.Fatalf("Expected counter for %s, %s: %d, actual: %d", compName, workerName, expected, actual)
 	}
 }

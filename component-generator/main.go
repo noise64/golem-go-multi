@@ -11,13 +11,13 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		exit(0, fmt.Sprintf("Usage: %s <package-org> <component-name>"))
+		exit(0, fmt.Sprintf("Usage: %s <package"+"-org> <component"+"-name>", os.Args[0]))
 	}
 
 	componentTemplateRoot := "component-template/component"
-	packageOrg := os.Args[1]
-	componentName := os.Args[2]
-	componentDir := filepath.Join("components", componentName)
+	pkgOrg := os.Args[1]
+	compName := os.Args[2]
+	componentDir := filepath.Join("components", compName)
 
 	_, err := os.Stat(componentDir)
 	if err == nil {
@@ -48,9 +48,9 @@ func main() {
 
 			switch path {
 			case "main.go":
-				err = generateFile(packageOrg, componentName, srcFilePath, filepath.Join(componentDir, path))
+				err = generateFile(pkgOrg, compName, srcFilePath, filepath.Join(componentDir, path))
 			case "wit/component.wit":
-				err = generateFile(packageOrg, componentName, srcFilePath, filepath.Join(componentDir, "wit", componentName+".wit"))
+				err = generateFile(pkgOrg, compName, srcFilePath, filepath.Join(componentDir, "wit", compName+".wit"))
 			default:
 				err = copyFile(srcFilePath, filepath.Join(componentDir, path))
 			}
@@ -65,9 +65,9 @@ func main() {
 	}
 }
 
-func generateFile(packageOrg, componentName, srcFileName, dstFileName string) error {
-	pascalPackageOrg := dashToPascal(packageOrg)
-	pascalComponentName := dashToPascal(componentName)
+func generateFile(pkgOrg, compName, srcFileName, dstFileName string) error {
+	pascalPkgOrg := dashToPascal(pkgOrg)
+	pascalCompName := dashToPascal(compName)
 
 	fmt.Printf("Generating from %s to %s\n", srcFileName, dstFileName)
 
@@ -78,10 +78,10 @@ func generateFile(packageOrg, componentName, srcFileName, dstFileName string) er
 
 	contents := string(contentsBs)
 
-	contents = strings.ReplaceAll(contents, "component-name", componentName)
-	contents = strings.ReplaceAll(contents, "package-org", packageOrg)
-	contents = strings.ReplaceAll(contents, "ComponentName", pascalComponentName)
-	contents = strings.ReplaceAll(contents, "PackageOrg", pascalPackageOrg)
+	contents = strings.ReplaceAll(contents, "comp-name", compName)
+	contents = strings.ReplaceAll(contents, "pck-org", pkgOrg)
+	contents = strings.ReplaceAll(contents, "CompName", pascalCompName)
+	contents = strings.ReplaceAll(contents, "PckOrg", pascalPkgOrg)
 
 	dstDir := filepath.Dir(dstFileName)
 	err = os.MkdirAll(dstDir, 0755)

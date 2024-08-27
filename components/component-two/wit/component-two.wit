@@ -1,4 +1,4 @@
-package golem:component-two;
+package package-org:component-two;
 
 // See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
 
@@ -35,7 +35,7 @@ world component-two {
   import wasi:sockets/instance-network@0.2.0;
 
   // Project Component dependencies
-  import golem:component-three-stub/stub-component-three;
+  import package-org:component-three-stub/stub-component-three;
 
   export component-two-api;
 }

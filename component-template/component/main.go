@@ -3,11 +3,11 @@ package main
 import (
 	"github.com/golemcloud/golem-go/std"
 
-	"golem-go-project/components/component-name/binding"
+	"golem-go-project/components/comp-name/binding"
 )
 
 func init() {
-	binding.SetExportsPackageOrgComponentNameComponentNameApi(&Impl{})
+	binding.SetExportsPckOrgCompoNameCompNameApi(&Impl{})
 }
 
 type Impl struct {
