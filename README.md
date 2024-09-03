@@ -1,3 +1,7 @@
+> [!IMPORTANT]  
+> This example now lives at [golem-examples](https://github.com/golemcloud/golem-examples/tree/main/examples/go/go-multi-rpc) as a template.
+
+
 # Golem Go Example with Multiple Components and Worker to Worker RPC Communication
 
 ## Building
